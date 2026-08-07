@@ -4,8 +4,10 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from starlette.responses import Response
 
-from app.api import health
+from app.api import health, recordings
 from app.core.config import settings
 
 
@@ -21,3 +23,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(health.router, prefix="/health", tags=["health"])
+app.include_router(recordings.router, prefix="/recordings", tags=["recordings"])
+
+
+@app.get("/metrics", tags=["monitoring"])
+def metrics():
+    data = generate_latest()
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)

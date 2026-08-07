@@ -6,16 +6,40 @@ Local voice-to-text input for Linux. A minimal global-hotkey dictation assistant
 
 Requires PostgreSQL and Redis running locally.
 
+### 1. Download a Vosk model
+
+```bash
+mkdir -p models
+cd models
+wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+unzip vosk-model-small-en-us-0.15.zip
+```
+
+### 2. Install dependencies and run migrations
+
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 alembic upgrade head
+```
+
+### 3. Start API server
+
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Default environment:
+### 4. Start Celery worker (in another terminal)
+
+```bash
+cd backend
+source .venv/bin/activate
+celery -A app.celery_app worker --loglevel=info
+```
+
+### Default environment
 
 ```bash
 DATABASE_URL=postgresql+asyncpg://echokey:echokey@localhost:5432/echokey
@@ -24,4 +48,6 @@ VOSK_MODEL_PATH=./models/vosk-model-small-en-us-0.15
 AUDIO_UPLOAD_DIR=./uploads
 ```
 
-Worker and client will be added in the next layers.
+## Client
+
+The desktop client will be added in the next layer.

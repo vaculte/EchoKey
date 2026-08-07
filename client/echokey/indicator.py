@@ -1,6 +1,9 @@
 """Animated recording overlay using tkinter."""
 
+import logging
 import tkinter as tk
+
+logger = logging.getLogger(__name__)
 
 
 class RecordingIndicator:
@@ -12,6 +15,8 @@ class RecordingIndicator:
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
         self.root.attributes("-alpha", 0.9)
+        # Place the indicator near the top-left of the primary screen so it is visible.
+        self.root.geometry("+100+100")
 
         self.canvas = tk.Canvas(
             self.root,
@@ -27,9 +32,14 @@ class RecordingIndicator:
         self._pulse()
 
     def show(self) -> None:
+        logger.info("Showing recording indicator")
         self.root.deiconify()
+        self.root.lift()
+        self.root.attributes("-topmost", True)
+        self.root.update_idletasks()
 
     def hide(self) -> None:
+        logger.info("Hiding recording indicator")
         self.root.withdraw()
 
     def _pulse(self) -> None:

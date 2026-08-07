@@ -1,5 +1,6 @@
 """Entrypoint that ties together hotkey, indicator, audio, API, and tray."""
 
+import logging
 import os
 import tempfile
 import threading
@@ -12,6 +13,12 @@ from echokey.hotkey import HotkeyListener
 from echokey.indicator import RecordingIndicator
 from echokey.input import type_text
 from echokey.tray import TrayIcon
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 class App:
@@ -41,6 +48,7 @@ class App:
         if self.recording:
             return
         self.recording = True
+        logger.info("Recording started")
         self.recorder.start()
         self.indicator.show()
 
@@ -48,6 +56,7 @@ class App:
         if not self.recording:
             return
         self.recording = False
+        logger.info("Recording stopped")
         self.recorder.stop()
         self.indicator.hide()
 
@@ -59,12 +68,17 @@ class App:
 
     def _process(self, path: str):
         try:
+            logger.info("Uploading audio for transcription")
             recording_id = self.client.upload(path)
+            logger.info("Polling transcription result")
             transcript = self.client.poll(recording_id)
             if transcript:
+                logger.info("Typing transcript: %s", transcript)
                 type_text(transcript)
+            else:
+                logger.warning("No transcript returned")
         except Exception as exc:
-            print(f"EchoKey processing error: {exc}")
+            logger.error("EchoKey processing error: %s", exc)
         finally:
             try:
                 os.remove(path)
@@ -79,7 +93,7 @@ class App:
 
 
 def main():
-    print(f"EchoKey client started. Press {settings.HOTKEY} to toggle recording.")
+    logger.info("EchoKey client started. Press %s to record.", settings.HOTKEY)
     App().run()
 
 

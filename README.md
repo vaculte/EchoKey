@@ -62,7 +62,7 @@ pip install -e .
 echokey
 ```
 
-Default hotkey: **Super+Z** (press to start recording, press again to stop and type).
+Default hotkey: **Super+Z** (hold to record, release to stop).
 
 Client environment:
 

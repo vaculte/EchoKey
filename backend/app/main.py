@@ -8,6 +8,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.responses import Response
 
 from app.api import health, recordings
+from app.celery_app import celery_app  # noqa: F401  # load Celery app before API uses tasks
 from app.core.config import settings
 
 

@@ -79,7 +79,7 @@ class App:
 
 
 def main():
-    print(f"EchoKey client started. Hold {settings.HOTKEY} to record.")
+    print(f"EchoKey client started. Press {settings.HOTKEY} to toggle recording.")
     App().run()
 
 

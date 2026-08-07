@@ -62,11 +62,11 @@ pip install -e .
 echokey
 ```
 
-Default hotkey: **F12**. Hold to record, release to send and type.
+Default hotkey: **Super+Z** (press to start recording, press again to stop and type).
 
 Client environment:
 
 ```bash
 ECHOKEY_API_URL=http://localhost:8000
-HOTKEY=f12
+HOTKEY=<cmd>+z
 ```

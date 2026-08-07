@@ -1,0 +1,29 @@
+[project]
+name = "echokey-backend"
+version = "0.1.0"
+description = "EchoKey backend API and worker"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "pydantic-settings",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "alembic",
+    "celery",
+    "redis",
+    "prometheus-client",
+    "python-multipart",
+    "vosk",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[tool.setuptools.packages.find]
+where = ["app"]

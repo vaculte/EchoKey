@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+.env
+backend/.venv/
+client/.venv/
+models/*
+!models/.gitkeep
+uploads/
+*.wav
+*.mp3

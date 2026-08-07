@@ -29,4 +29,10 @@ class TrayIcon:
         self.icon.stop()
 
     def start(self) -> None:
-        threading.Thread(target=self.icon.run, daemon=True).start()
+        def _run():
+            try:
+                self.icon.run()
+            except Exception as exc:
+                print(f"Warning: system tray not available ({exc}). Continuing without tray.")
+
+        threading.Thread(target=_run, daemon=True).start()

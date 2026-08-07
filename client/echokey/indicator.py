@@ -18,7 +18,7 @@ class RecordingIndicator:
             width=80,
             height=80,
             highlightthickness=0,
-            bg="",
+            bg="#000000",
         )
         self.canvas.pack()
         self.circle = self.canvas.create_oval(

@@ -72,6 +72,8 @@ class HotkeyListener:
 
     def _on_press(self, key):
         name = self._key_name(key)
+        if settings.DEBUG:
+            print(f"[hotkey debug] press: {name}", flush=True)
         if name is None:
             return
         self._pressed.add(name)
@@ -86,6 +88,8 @@ class HotkeyListener:
 
     def _on_release(self, key):
         name = self._key_name(key)
+        if settings.DEBUG:
+            print(f"[hotkey debug] release: {name}", flush=True)
         if name in self._pressed:
             self._pressed.remove(name)
         if self._recording and (

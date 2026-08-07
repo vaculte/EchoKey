@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     )
 
     ECHOKEY_API_URL: str = "http://localhost:8000"
-    HOTKEY: str = "<cmd>+z"
+    HOTKEY: str = "f12"
+    DEBUG: bool = False
 
 
 settings = Settings()

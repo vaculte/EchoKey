@@ -62,11 +62,11 @@ pip install -e .
 echokey
 ```
 
-Default hotkey: **Super+Z** (hold to record, release to stop).
+Default hotkey: **F12** (hold to record, release to stop).
 
 Client environment:
 
 ```bash
 ECHOKEY_API_URL=http://localhost:8000
-HOTKEY=<cmd>+z
+HOTKEY=f12
 ```

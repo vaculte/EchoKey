@@ -48,6 +48,7 @@ class App:
         if self.recording:
             return
         self.recording = True
+        print("[EchoKey] Recording started")
         logger.info("Recording started")
         self.recorder.start()
         self.indicator.show()
@@ -56,6 +57,7 @@ class App:
         if not self.recording:
             return
         self.recording = False
+        print("[EchoKey] Recording stopped")
         logger.info("Recording stopped")
         self.recorder.stop()
         self.indicator.hide()
@@ -93,6 +95,7 @@ class App:
 
 
 def main():
+    print(f"[EchoKey] Client started. Press {settings.HOTKEY} to record.")
     logger.info("EchoKey client started. Press %s to record.", settings.HOTKEY)
     App().run()
 

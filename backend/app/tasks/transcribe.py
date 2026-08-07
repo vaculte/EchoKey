@@ -1,18 +1,16 @@
-"""Celery task that transcribes a saved audio file with a local Vosk model.
-
-The model is loaded once per worker process and reused for every task.
-"""
+"""Celery task that transcribes a saved audio file with a local Vosk model."""
 
 import asyncio
 import json
 import os
 import wave
+from pathlib import Path
 
 from celery import shared_task
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from vosk import KaldiRecognizer, Model
 
 from app.core.config import settings
-from app.db.base import async_session
 from app.models import Recording
 from app.schemas import RecordingStatus
 
@@ -20,13 +18,24 @@ from app.schemas import RecordingStatus
 _model: Model | None = None
 
 
+def _resolve_model_path() -> str:
+    """Resolve the Vosk model path relative to the project root if it is not absolute."""
+    configured = Path(settings.VOSK_MODEL_PATH).expanduser()
+    if configured.is_absolute():
+        return str(configured)
+    # backend/app/tasks/transcribe.py -> project root
+    project_root = Path(__file__).resolve().parents[3]
+    return str(project_root / configured)
+
+
 def get_model() -> Model:
     """Load the Vosk model once and cache it."""
     global _model
     if _model is None:
-        if not os.path.exists(settings.VOSK_MODEL_PATH):
-            raise RuntimeError(f"Vosk model not found at {settings.VOSK_MODEL_PATH}")
-        _model = Model(settings.VOSK_MODEL_PATH)
+        model_path = _resolve_model_path()
+        if not os.path.exists(model_path):
+            raise RuntimeError(f"Vosk model not found at {model_path}")
+        _model = Model(model_path)
     return _model
 
 
@@ -59,48 +68,66 @@ def transcribe_audio(audio_path: str) -> tuple[str, float]:
     return result.get("text", "").strip(), duration
 
 
-async def _update_recording(
+async def _update_task(
     recording_id: str,
     status: str,
     transcript: str | None = None,
     duration_seconds: float | None = None,
     error_message: str | None = None,
 ) -> None:
-    async with async_session() as session:
-        async with session.begin():
-            recording = await session.get(Recording, recording_id)
-            if recording is None:
-                return
-            recording.status = status
-            if transcript is not None:
-                recording.transcript = transcript
-            if duration_seconds is not None:
-                recording.duration_seconds = duration_seconds
-            if error_message is not None:
-                recording.error_message = error_message
+    """Create a fresh async engine per task to avoid event-loop issues in forked workers."""
+    engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
+    session_factory = async_sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession
+    )
+    try:
+        async with session_factory() as session:
+            async with session.begin():
+                recording = await session.get(Recording, recording_id)
+                if recording is None:
+                    return
+                recording.status = status
+                if transcript is not None:
+                    recording.transcript = transcript
+                if duration_seconds is not None:
+                    recording.duration_seconds = duration_seconds
+                if error_message is not None:
+                    recording.error_message = error_message
+    finally:
+        await engine.dispose()
+
+
+async def _run(recording_id: str, audio_path: str) -> None:
+    await _update_task(recording_id, RecordingStatus.PROCESSING.value)
+    try:
+        transcript, duration = transcribe_audio(audio_path)
+        await _update_task(
+            recording_id,
+            RecordingStatus.COMPLETED.value,
+            transcript=transcript,
+            duration_seconds=duration,
+        )
+    except Exception as exc:
+        await _update_task(
+            recording_id,
+            RecordingStatus.FAILED.value,
+            error_message=str(exc),
+        )
+        raise
 
 
 @shared_task(bind=True, max_retries=3)
 def process_recording(self, recording_id: str, audio_path: str) -> None:
     try:
+        asyncio.run(_run(recording_id, audio_path))
+    except RuntimeError as exc:
+        # Non-retryable errors such as a missing Vosk model: record failure and stop.
         asyncio.run(
-            _update_recording(recording_id, RecordingStatus.PROCESSING.value)
-        )
-        transcript, duration = transcribe_audio(audio_path)
-        asyncio.run(
-            _update_recording(
-                recording_id,
-                RecordingStatus.COMPLETED.value,
-                transcript=transcript,
-                duration_seconds=duration,
-            )
-        )
-    except Exception as exc:
-        asyncio.run(
-            _update_recording(
+            _update_task(
                 recording_id,
                 RecordingStatus.FAILED.value,
                 error_message=str(exc),
             )
         )
+    except Exception as exc:
         raise self.retry(exc=exc, countdown=10)

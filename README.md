@@ -21,6 +21,7 @@ unzip vosk-model-small-en-us-0.15.zip
 cd backend
 python -m venv .venv
 source .venv/bin/activate
+cp .env.example .env
 pip install -e .
 alembic upgrade head
 ```
@@ -56,6 +57,7 @@ Requires a microphone and an X11 session.
 cd client
 python -m venv .venv
 source .venv/bin/activate
+cp .env.example .env
 pip install -e .
 echokey
 ```

@@ -48,6 +48,23 @@ VOSK_MODEL_PATH=./models/vosk-model-small-en-us-0.15
 AUDIO_UPLOAD_DIR=./uploads
 ```
 
-## Client
+## Client local run
 
-The desktop client will be added in the next layer.
+Requires a microphone and an X11 session.
+
+```bash
+cd client
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+echokey
+```
+
+Default hotkey: **F12**. Hold to record, release to send and type.
+
+Client environment:
+
+```bash
+ECHOKEY_API_URL=http://localhost:8000
+HOTKEY=f12
+```

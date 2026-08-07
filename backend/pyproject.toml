@@ -23,7 +23,11 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "httpx",
+    "aiosqlite",
 ]
 
 [tool.setuptools.packages.find]
 where = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

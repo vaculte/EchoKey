@@ -17,5 +17,5 @@ dependencies = [
 [project.scripts]
 echokey = "echokey.main:main"
 
-[tool.setuptools.packages.find]
-where = ["echokey"]
+[tool.setuptools]
+packages = ["echokey"]

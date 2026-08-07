@@ -1,9 +1,12 @@
 """Entrypoint that ties together hotkey, indicator, audio, API, and tray."""
 
 import logging
+import logging.handlers
 import os
+import sys
 import tempfile
 import threading
+from pathlib import Path
 from queue import Empty, Queue
 
 from echokey.api import EchoKeyClient
@@ -14,10 +17,32 @@ from echokey.indicator import RecordingIndicator
 from echokey.input import type_text
 from echokey.tray import TrayIcon
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-)
+
+def _setup_logging() -> None:
+    log_dir = Path.home() / ".local" / "share" / "echokey"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "client.log"
+
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_file, maxBytes=1_000_000, backupCount=3
+    )
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(
+        logging.Formatter("%(levelname)s %(name)s %(message)s")
+    )
+
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[console_handler, file_handler],
+        force=True,
+    )
+    logging.getLogger("pynput").setLevel(logging.WARNING)
+    logging.getLogger("sounddevice").setLevel(logging.WARNING)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +73,6 @@ class App:
         if self.recording:
             return
         self.recording = True
-        print("[EchoKey] Recording started")
         logger.info("Recording started")
         self.recorder.start()
         self.indicator.show()
@@ -57,7 +81,6 @@ class App:
         if not self.recording:
             return
         self.recording = False
-        print("[EchoKey] Recording stopped")
         logger.info("Recording stopped")
         self.recorder.stop()
         self.indicator.hide()
@@ -95,7 +118,7 @@ class App:
 
 
 def main():
-    print(f"[EchoKey] Client started. Press {settings.HOTKEY} to record.")
+    _setup_logging()
     logger.info("EchoKey client started. Press %s to record.", settings.HOTKEY)
     App().run()
 

@@ -1,5 +1,6 @@
 """Record audio from the microphone into a WAV file."""
 
+import logging
 import wave
 from pathlib import Path
 
@@ -9,6 +10,8 @@ import sounddevice as sd
 SAMPLE_RATE = 16000
 CHANNELS = 1
 SAMPLE_WIDTH = 2  # int16
+
+logger = logging.getLogger(__name__)
 
 
 class AudioRecorder:
@@ -20,8 +23,10 @@ class AudioRecorder:
 
     def _callback(self, indata, frames, time, status):
         if status:
-            print(f"audio status: {status}")
-        self.frames.append(indata.copy())
+            logger.warning("audio status: %s", status)
+        # sounddevice may pass a cffi buffer instead of a numpy array.
+        data = np.asarray(indata, dtype=np.int16).copy()
+        self.frames.append(data)
 
     def start(self) -> None:
         self.frames = []

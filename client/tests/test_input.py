@@ -11,28 +11,18 @@ class TestTypeText(unittest.TestCase):
     @mock.patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-1"}, clear=True)
     @mock.patch.object(input_module, "_wtype_available", return_value=True)
     @mock.patch.object(input_module, "_wl_clipboard_available", return_value=True)
-    def test_uses_wayland_clipboard_paste(self, *_):
-        with mock.patch("subprocess.run") as mock_run:
-            wl_paste_result = mock.Mock()
-            wl_paste_result.returncode = 0
-            wl_paste_result.stdout = "previous clipboard"
-            mock_run.side_effect = [
-                wl_paste_result,  # wl-paste
-                None,  # wl-copy text
-                None,  # wtype Ctrl+V
-                None,  # wl-copy restore
-            ]
-            input_module.type_text("hello")
-            self.assertEqual(mock_run.call_count, 4)
-            mock_run.assert_any_call(
-                ["wl-paste", "--no-newline"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            mock_run.assert_any_call(["wl-copy", "hello"], check=True, timeout=5)
-            mock_run.assert_any_call(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"], check=True, timeout=5)
-            mock_run.assert_any_call(["wl-copy", "previous clipboard"], check=True, timeout=5)
+    @mock.patch("subprocess.run")
+    def test_uses_wayland_clipboard_paste(self, mock_run, *_):
+        input_module.type_text("hello")
+        # wl-copy text, wtype Ctrl+V; no clipboard restore to keep clipboard
+        # manager history clean.
+        self.assertEqual(mock_run.call_count, 2)
+        mock_run.assert_any_call(["wl-copy", "hello"], check=True, timeout=5)
+        mock_run.assert_any_call(
+            ["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"],
+            check=True,
+            timeout=5,
+        )
 
     @mock.patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-1"}, clear=True)
     @mock.patch.object(input_module, "_wtype_available", return_value=True)

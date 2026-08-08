@@ -26,7 +26,7 @@ def _wtype_available() -> bool:
 
 
 def _wl_clipboard_available() -> bool:
-    return shutil.which("wl-copy") is not None and shutil.which("wl-paste") is not None
+    return shutil.which("wl-copy") is not None
 
 
 def _type_with_wtype(text: str) -> None:
@@ -38,33 +38,16 @@ def _type_with_wtype_clipboard(text: str) -> None:
     """Use wl-copy + wtype Ctrl+V to paste Unicode text reliably on Wayland.
 
     This bypasses keycode layout issues that can make ``wtype <text>`` produce
-    the wrong characters in some applications.
+    the wrong characters in some applications. We intentionally do NOT restore
+    the previous clipboard content, because doing so creates a second clipboard
+    event and makes the new message appear one entry back in clipboard-manager
+    history.
     """
-    old_clip = ""
-    try:
-        result = subprocess.run(
-            ["wl-paste", "--no-newline"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            old_clip = result.stdout
-    except Exception as exc:
-        logger.warning("Could not read Wayland clipboard: %s", exc)
-
-    try:
-        subprocess.run(["wl-copy", text], check=True, timeout=5)
-        time.sleep(0.1)
-        # Explicit key press/release so the compositor sees a real Ctrl+V combo.
-        subprocess.run(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"], check=True, timeout=5)
-        time.sleep(0.2)
-    finally:
-        try:
-            if old_clip:
-                subprocess.run(["wl-copy", old_clip], check=True, timeout=5)
-        except Exception as exc:
-            logger.warning("Could not restore Wayland clipboard: %s", exc)
+    subprocess.run(["wl-copy", text], check=True, timeout=5)
+    time.sleep(0.1)
+    # Explicit key press/release so the compositor sees a real Ctrl+V combo.
+    subprocess.run(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"], check=True, timeout=5)
+    time.sleep(0.2)
 
 
 def _type_with_pynput(text: str) -> None:
@@ -72,12 +55,6 @@ def _type_with_pynput(text: str) -> None:
     if pyperclip is None:
         _controller.type(text)
         return
-
-    try:
-        old_clip = pyperclip.paste()
-    except Exception as exc:
-        logger.warning("Could not read clipboard: %s", exc)
-        old_clip = ""
 
     try:
         pyperclip.copy(text)
@@ -89,11 +66,6 @@ def _type_with_pynput(text: str) -> None:
     except Exception as exc:
         logger.warning("Clipboard paste failed: %s", exc)
         _controller.type(text)
-    finally:
-        try:
-            pyperclip.copy(old_clip)
-        except Exception as exc:
-            logger.warning("Could not restore clipboard: %s", exc)
 
 
 def type_text(text: str) -> None:

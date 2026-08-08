@@ -73,6 +73,7 @@ class App:
         if self.recording:
             return
         self.recording = True
+        self._record_start_ts = time.perf_counter()
         logger.info("Recording started")
         self.recorder.start()
         self.indicator.show()
@@ -81,7 +82,8 @@ class App:
         if not self.recording:
             return
         self.recording = False
-        logger.info("Recording stopped")
+        duration = time.perf_counter() - getattr(self, "_record_start_ts", 0)
+        logger.info("Recording stopped (hotkey held for %.3fs)", duration)
         self.recorder.stop()
         self.indicator.hide()
 

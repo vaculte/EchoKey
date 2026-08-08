@@ -72,8 +72,6 @@ class HotkeyListener:
 
     def _on_press(self, key):
         name = self._key_name(key)
-        if settings.DEBUG:
-            print(f"[hotkey debug] press: {name}", flush=True)
         if name is None:
             return
         self._pressed.add(name)
@@ -84,12 +82,10 @@ class HotkeyListener:
         ):
             self._recording = True
             self.event_queue.put("start")
-            logger.info("Hotkey pressed: starting recording")
+            logger.info("Hotkey PRESSED: %s (pressed set: %s)", name, self._pressed)
 
     def _on_release(self, key):
         name = self._key_name(key)
-        if settings.DEBUG:
-            print(f"[hotkey debug] release: {name}", flush=True)
         if name in self._pressed:
             self._pressed.remove(name)
         if self._recording and (
@@ -98,7 +94,9 @@ class HotkeyListener:
         ):
             self._recording = False
             self.event_queue.put("stop")
-            logger.info("Hotkey released: stopping recording")
+            logger.info("Hotkey RELEASED: %s (pressed set: %s)", name, self._pressed)
+        if settings.DEBUG and name is not None:
+            logger.debug("[hotkey debug] release: %s", name)
 
     def start(self) -> None:
         self._listener = keyboard.Listener(

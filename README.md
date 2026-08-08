@@ -51,7 +51,7 @@ AUDIO_UPLOAD_DIR=./uploads
 
 ## Client local run
 
-Requires a microphone and an X11 session.
+Requires a microphone. Supports both X11 and Wayland.
 
 ```bash
 cd client
@@ -62,11 +62,44 @@ pip install -e .
 echokey
 ```
 
-Default hotkey: **F12** (hold to record, release to stop).
+Default hotkey: **F12** (hold to record, release to stop). Change it in `client/.env`:
+
+```bash
+HOTKEY=f12
+# or combos:
+HOTKEY=<ctrl>+<shift>+r
+HOTKEY=<cmd>+z
+```
+
+`cmd`, `super` and `win` are aliases for the same modifier.
+
+### X11
+
+No extra steps. The client uses `pynput` for the hotkey and `pyperclip` + `Ctrl+V` to type.
+
+### Wayland
+
+On Wayland the client uses:
+
+- `evdev` to listen for the global hotkey in native Wayland windows.
+- `wl-copy` + `wtype` to paste the transcription via the clipboard.
+
+Install the system tools and add your user to the `input` group so `evdev` can read the keyboard:
+
+```bash
+# Arch / Manjaro
+sudo pacman -S wtype wl-clipboard
+
+sudo usermod -aG input $USER
+# then log out and back in
+```
+
+After logging back in, `echokey` should log `Using evdev hotkey listener for Wayland`.
 
 Client environment:
 
 ```bash
 ECHOKEY_API_URL=http://localhost:8000
 HOTKEY=f12
+DEBUG=false
 ```

@@ -25,9 +25,45 @@ def _wtype_available() -> bool:
     return shutil.which("wtype") is not None
 
 
+def _wl_clipboard_available() -> bool:
+    return shutil.which("wl-copy") is not None and shutil.which("wl-paste") is not None
+
+
 def _type_with_wtype(text: str) -> None:
     """Use wtype to inject text under Wayland."""
     subprocess.run(["wtype", text], check=True, timeout=30)
+
+
+def _type_with_wtype_clipboard(text: str) -> None:
+    """Use wl-copy + wtype Ctrl+V to paste Unicode text reliably on Wayland.
+
+    This bypasses keycode layout issues that can make ``wtype <text>`` produce
+    the wrong characters in some applications.
+    """
+    old_clip = ""
+    try:
+        result = subprocess.run(
+            ["wl-paste", "--no-newline"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            old_clip = result.stdout
+    except Exception as exc:
+        logger.warning("Could not read Wayland clipboard: %s", exc)
+
+    try:
+        subprocess.run(["wl-copy", text], check=True, timeout=5)
+        time.sleep(0.05)
+        subprocess.run(["wtype", "-M", "ctrl", "v"], check=True, timeout=5)
+        time.sleep(0.05)
+    finally:
+        try:
+            if old_clip:
+                subprocess.run(["wl-copy", old_clip], check=True, timeout=5)
+        except Exception as exc:
+            logger.warning("Could not restore Wayland clipboard: %s", exc)
 
 
 def _type_with_pynput(text: str) -> None:
@@ -62,11 +98,18 @@ def _type_with_pynput(text: str) -> None:
 def type_text(text: str) -> None:
     """Type the given text as if from a keyboard.
 
-    On Wayland, prefer wtype so text is injected into native Wayland
-    windows. On X11 or when wtype is unavailable, fall back to the clipboard
-    + Ctrl+V path.
+    On Wayland, prefer ``wl-copy`` + ``wtype Ctrl+V`` so Unicode text is
+    pasted correctly even when the active keyboard layout differs. Fall back
+    to direct ``wtype <text>`` and then to the X11 ``pyperclip`` + ``Ctrl+V``
+    path when the Wayland tools are unavailable.
     """
     if _wayland_available() and _wtype_available():
+        if _wl_clipboard_available():
+            try:
+                _type_with_wtype_clipboard(text)
+                return
+            except Exception as exc:
+                logger.warning("Wayland clipboard paste failed: %s; trying direct wtype", exc)
         try:
             _type_with_wtype(text)
             return

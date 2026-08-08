@@ -62,13 +62,13 @@ pip install -e .
 echokey
 ```
 
-Default hotkey: **F12** (hold to record, release to stop). Change it in `client/.env`:
+Default hotkey: **Super+Z** (hold to record, release to stop). Change it in `client/.env`:
 
 ```bash
-HOTKEY=f12
-# or combos:
-HOTKEY=<ctrl>+<shift>+r
 HOTKEY=<cmd>+z
+# or other combos:
+HOTKEY=f12
+HOTKEY=<ctrl>+<shift>+r
 ```
 
 `cmd`, `super` and `win` are aliases for the same modifier.
@@ -100,6 +100,6 @@ Client environment:
 
 ```bash
 ECHOKEY_API_URL=http://localhost:8000
-HOTKEY=f12
+HOTKEY=<cmd>+z
 DEBUG=false
 ```

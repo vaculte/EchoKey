@@ -5,6 +5,7 @@ description = "EchoKey Linux desktop client"
 requires-python = ">=3.11"
 dependencies = [
     "pynput",
+    "evdev",
     "sounddevice",
     "numpy",
     "httpx",

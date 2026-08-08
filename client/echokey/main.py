@@ -13,7 +13,7 @@ from queue import Empty, Queue
 from echokey.api import EchoKeyClient
 from echokey.audio import AudioRecorder
 from echokey.config import settings
-from echokey.hotkey import HotkeyListener
+from echokey.hotkey import create_listener
 from echokey.indicator import RecordingIndicator
 from echokey.input import type_text
 from echokey.tray import TrayIcon
@@ -53,7 +53,7 @@ class App:
         self.recorder = AudioRecorder()
         self.client = EchoKeyClient()
         self.indicator = RecordingIndicator()
-        self.listener = HotkeyListener(self.queue)
+        self.listener = create_listener(self.queue)
         self.tray = TrayIcon()
         self.recording = False
         self._stop_after_id = None

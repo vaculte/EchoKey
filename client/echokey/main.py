@@ -56,6 +56,7 @@ class App:
         self.listener = HotkeyListener(self.queue)
         self.tray = TrayIcon()
         self.recording = False
+        self._stop_after_id = None
 
     def _poll_queue(self):
         """Read events from the hotkey thread and update the UI."""
@@ -63,9 +64,18 @@ class App:
             while True:
                 event = self.queue.get_nowait()
                 if event == "start":
-                    self._start_recording()
+                    if self._stop_after_id is not None:
+                        self.indicator.root.after_cancel(self._stop_after_id)
+                        self._stop_after_id = None
+                        logger.info("Hotkey bounce cancelled scheduled stop")
+                    if not self.recording:
+                        self._start_recording()
                 elif event == "stop":
-                    self._stop_recording()
+                    if self.recording and self._stop_after_id is None:
+                        self._stop_after_id = self.indicator.root.after(
+                            200, self._stop_recording
+                        )
+                        logger.info("Release scheduled stop in 200ms")
         except Empty:
             pass
         self.indicator.root.after(50, self._poll_queue)
@@ -80,6 +90,7 @@ class App:
         self.indicator.show()
 
     def _stop_recording(self):
+        self._stop_after_id = None
         if not self.recording:
             return
         self.recording = False

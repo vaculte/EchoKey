@@ -264,12 +264,15 @@ def _evdev_available() -> bool:
     try:
         import evdev
     except Exception as exc:
-        logger.debug("evdev not importable: %s", exc)
+        logger.warning("evdev not importable: %s", exc)
         return False
     try:
         paths = evdev.list_devices()
     except Exception as exc:
-        logger.debug("evdev.list_devices failed: %s", exc)
+        logger.warning("evdev.list_devices failed: %s", exc)
+        return False
+    if not paths:
+        logger.warning("No /dev/input/event* devices found")
         return False
     for path in paths:
         try:
@@ -278,6 +281,10 @@ def _evdev_available() -> bool:
             if caps and 1 in caps:
                 device.close()
                 return True
+        except PermissionError as exc:
+            logger.warning(
+                "Cannot open %s (are you in the 'input' group?): %s", path, exc
+            )
         except Exception as exc:
             logger.debug("Cannot open evdev device %s: %s", path, exc)
     return False

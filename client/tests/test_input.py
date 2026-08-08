@@ -31,7 +31,7 @@ class TestTypeText(unittest.TestCase):
                 timeout=5,
             )
             mock_run.assert_any_call(["wl-copy", "hello"], check=True, timeout=5)
-            mock_run.assert_any_call(["wtype", "-M", "ctrl", "v"], check=True, timeout=5)
+            mock_run.assert_any_call(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"], check=True, timeout=5)
             mock_run.assert_any_call(["wl-copy", "previous clipboard"], check=True, timeout=5)
 
     @mock.patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-1"}, clear=True)

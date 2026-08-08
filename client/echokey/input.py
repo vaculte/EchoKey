@@ -55,9 +55,10 @@ def _type_with_wtype_clipboard(text: str) -> None:
 
     try:
         subprocess.run(["wl-copy", text], check=True, timeout=5)
-        time.sleep(0.05)
-        subprocess.run(["wtype", "-M", "ctrl", "v"], check=True, timeout=5)
-        time.sleep(0.05)
+        time.sleep(0.1)
+        # Explicit key press/release so the compositor sees a real Ctrl+V combo.
+        subprocess.run(["wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl"], check=True, timeout=5)
+        time.sleep(0.2)
     finally:
         try:
             if old_clip:
@@ -105,14 +106,17 @@ def type_text(text: str) -> None:
     """
     if _wayland_available() and _wtype_available():
         if _wl_clipboard_available():
+            logger.info("Typing via Wayland clipboard paste")
             try:
                 _type_with_wtype_clipboard(text)
                 return
             except Exception as exc:
                 logger.warning("Wayland clipboard paste failed: %s; trying direct wtype", exc)
+        logger.info("Typing via direct wtype")
         try:
             _type_with_wtype(text)
             return
         except Exception as exc:
             logger.warning("wtype failed: %s; falling back to pynput", exc)
+    logger.info("Typing via pynput fallback")
     _type_with_pynput(text)

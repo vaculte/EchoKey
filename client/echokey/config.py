@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     )
 
     ECHOKEY_API_URL: str = "http://localhost:8000"
-    HOTKEY: str = "<cmd>+z"
+    HOTKEY: str = "f4"
     DEBUG: bool = False
     INPUT_DEVICE: str | None = None  # sounddevice device name or index
 

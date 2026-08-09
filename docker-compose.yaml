@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: echokey-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - echokey
+  redis:
+    image: redis:7-alpine
+    container_name: echokey-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s  
+      timeout: 3s
+      retries: 5
+    networks:
+      - echokey
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: echokey-backend
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      AUDIO_UPLOAD_DIR: ${AUDIO_UPLOAD_DIR}
+      VOSK_MODEL_PATH: ${VOSK_MODEL_PATH}
+      LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+      - uploads:/app/uploads
+      - ./models/vosk:/app/models/vosk:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - echokey
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: echokey-worker
+    restart: unless-stopped
+    command: celery -A app.celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      AUDIO_UPLOAD_DIR: ${AUDIO_UPLOAD_DIR}
+      VOSK_MODEL_PATH: ${VOSK_MODEL_PATH}
+      LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+      - uploads:/app/uploads
+      - ./models/vosk:/app/models/vosk:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - echokey
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+
+networks:
+  echokey:
+    driver: bridge

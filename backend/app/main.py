@@ -10,10 +10,13 @@ from starlette.responses import Response
 from app.api import health, recordings
 from app.celery_app import celery_app  # noqa: F401  # load Celery app before API uses tasks
 from app.core.config import settings
+from app.db.base import Base, engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     os.makedirs(settings.AUDIO_UPLOAD_DIR, exist_ok=True)
     yield
 

@@ -22,24 +22,36 @@ class EchoKeyClient:
                     f"{self.base_url}/recordings",
                     files={"file": ("recording.wav", f, "audio/wav")},
                 )
-                logger.info("Upload response: %s %s", response.status_code, response.text[:200])
+                logger.info(
+                    "Upload response: %s %s", response.status_code, response.text[:200]
+                )
                 response.raise_for_status()
                 data = response.json()
                 return data["id"]
 
-    def poll(self, recording_id: str, interval: float = 0.5, timeout: float = 30.0) -> str | None:
+    def poll(
+        self,
+        recording_id: str,
+        interval: float = 0.5,
+        timeout: float = 30.0,
+    ) -> str | None:
         logger.info("Polling transcription for %s", recording_id)
         start = time.time()
         with httpx.Client(timeout=10.0) as client:
             while time.time() - start < timeout:
                 response = client.get(f"{self.base_url}/recordings/{recording_id}")
-                logger.info("Poll response: %s %s", response.status_code, response.text[:200])
+                logger.info(
+                    "Poll response: %s %s", response.status_code, response.text[:200]
+                )
                 response.raise_for_status()
                 data = response.json()
                 if data["status"] == "completed":
                     return data.get("transcript")
                 if data["status"] == "failed":
-                    logger.error("Transcription failed on server: %s", data.get("error_message"))
+                    logger.error(
+                        "Transcription failed on server: %s",
+                        data.get("error_message"),
+                    )
                     return None
                 time.sleep(interval)
         logger.warning("Polling timeout for %s", recording_id)

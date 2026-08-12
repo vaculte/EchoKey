@@ -9,6 +9,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 os.environ.setdefault(
     "DATABASE_URL", "postgresql+asyncpg://echokey:echokey@localhost:5432/echokey_test"
@@ -44,7 +45,12 @@ def anyio_backend():
 
 @pytest.fixture(scope="session")
 async def engine():
-    engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=False,
+        future=True,
+        poolclass=NullPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
@@ -83,7 +89,7 @@ async def client(db_session, redis_ok, no_celery):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-    transport = ASGITransport(app=app, raise_exceptions=False)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
     app.dependency_overrides.clear()

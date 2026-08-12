@@ -6,15 +6,13 @@ import shutil
 import subprocess
 import time
 
-from pynput.keyboard import Controller, Key
-
 try:
     import pyperclip
 except Exception:  # pragma: no cover - optional fallback
     pyperclip = None
 
 logger = logging.getLogger(__name__)
-_controller = Controller()
+_controller = None
 
 
 def _wayland_available() -> bool:
@@ -52,11 +50,19 @@ def _type_with_wtype_clipboard(text: str) -> None:
 
 def _type_with_pynput(text: str) -> None:
     """Use the clipboard + Ctrl+V to preserve Unicode characters."""
+    global _controller
+    if _controller is None:
+        from pynput.keyboard import Controller
+
+        _controller = Controller()
+
     if pyperclip is None:
         _controller.type(text)
         return
 
     try:
+        from pynput.keyboard import Key
+
         pyperclip.copy(text)
         time.sleep(0.05)
         with _controller.pressed(Key.ctrl):

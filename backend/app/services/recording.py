@@ -13,7 +13,9 @@ from app.schemas import RecordingStatus
 from app.tasks.transcribe import process_recording
 
 
-async def create_recording(file_content: bytes, filename: str, db: AsyncSession) -> Recording:
+async def create_recording(
+    file_content: bytes, filename: str, db: AsyncSession
+) -> Recording:
     recording_id = str(uuid.uuid4())
     ext = Path(filename).suffix.lower() or ".wav"
     relative_path = f"{recording_id}{ext}"

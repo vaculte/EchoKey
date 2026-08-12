@@ -29,7 +29,9 @@ def _resolve_device():
     # Try matching by name substring.
     devices = sd.query_devices()
     for idx, device in enumerate(devices):
-        if device.get("max_input_channels", 0) > 0 and candidate.lower() in device.get("name", "").lower():
+        has_input = device.get("max_input_channels", 0) > 0
+        name_matches = candidate.lower() in device.get("name", "").lower()
+        if has_input and name_matches:
             logger.info("Selected input device %s: %s", idx, device["name"])
             return idx
     logger.warning("INPUT_DEVICE '%s' not found; using default", candidate)

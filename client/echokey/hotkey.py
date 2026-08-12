@@ -210,8 +210,6 @@ class EvdevHotkeyListener(BaseHotkeyListener):
 
     def _read_loop(self):
         """Poll evdev devices and translate key events into start/stop."""
-        import evdev
-
         self._devices = self._find_devices()
         if not self._devices:
             logger.warning("No evdev keyboard devices found; hotkey will not work")

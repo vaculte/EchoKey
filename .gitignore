@@ -3,6 +3,8 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
+.ruff_cache/
+.pytest_cache/
 .env
 backend/.venv/
 client/.venv/
@@ -12,4 +14,5 @@ uploads/
 *.wav
 *.mp3
 AGENTS.md
-ROADMAP.mdROADMAP.md
+ROADMAP.md
+CI_CD_CHECKLIST.md

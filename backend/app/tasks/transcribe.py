@@ -19,7 +19,10 @@ _model: Model | None = None
 
 
 def _resolve_model_path() -> str:
-    """Resolve the Vosk model path relative to the project root if it is not absolute."""
+    """Resolve the Vosk model path relative to the project root.
+
+    Use it only when the configured path is not absolute.
+    """
     configured = Path(settings.VOSK_MODEL_PATH).expanduser()
     if configured.is_absolute():
         return str(configured)
@@ -75,7 +78,10 @@ async def _update_task(
     duration_seconds: float | None = None,
     error_message: str | None = None,
 ) -> None:
-    """Create a fresh async engine per task to avoid event-loop issues in forked workers."""
+    """Create a fresh async engine per task.
+
+    This avoids event-loop issues in forked workers.
+    """
     engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
     session_factory = async_sessionmaker(
         engine, expire_on_commit=False, class_=AsyncSession

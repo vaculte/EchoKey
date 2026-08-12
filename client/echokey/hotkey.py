@@ -65,14 +65,14 @@ class PynputHotkeyListener(BaseHotkeyListener):
 
     def __init__(self, event_queue: Queue):
         super().__init__(event_queue)
-        from pynput import keyboard
-
-        self._keyboard = keyboard
+        self._keyboard = None
         self._pressed: set[str] = set()
         self._recording = False
         self._listener = None
 
     def _key_name(self, key):
+        if self._keyboard is None:
+            return None
         if isinstance(key, self._keyboard.Key):
             name = key.name
             if name in ("ctrl_l", "ctrl_r"):
@@ -117,6 +117,9 @@ class PynputHotkeyListener(BaseHotkeyListener):
             logger.debug("[hotkey debug] release: %s", name)
 
     def start(self) -> None:
+        from pynput import keyboard
+
+        self._keyboard = keyboard
         self._listener = self._keyboard.Listener(
             on_press=self._on_press,
             on_release=self._on_release,

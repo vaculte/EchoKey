@@ -15,4 +15,5 @@ uploads/
 *.mp3
 AGENTS.md
 ROADMAP.md
-CI_CD_CHECKLIST.md
+*CHECKLIST.md
+k8s/manifests/*-secret.local.yaml

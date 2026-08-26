@@ -163,7 +163,7 @@ models/     local Vosk model mount point (not committed)
 
 - [x] Dockerized local stack
 - [x] Pull-request lint and test checks for backend and client
-- [ ] Publish container images after merge to `main`
+- [x] Publish container images after merge to `main`
 - [ ] Kubernetes deployment manifests
 - [ ] Prometheus and Grafana dashboard
 

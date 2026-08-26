@@ -162,7 +162,7 @@ models/     mount point для локальной Vosk model (не коммит�
 
 - [x] Dockerized local stack
 - [x] Pull-request lint и test checks для backend и client
-- [ ] Публикация container images после merge в `main`
+- [x] Публикация container images после merge в `main`
 - [ ] Kubernetes deployment manifests
 - [ ] Prometheus и Grafana dashboard
 

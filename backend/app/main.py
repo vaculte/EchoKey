@@ -26,7 +26,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
-app.include_router(health.router, prefix="/health", tags=["health"])
+app.include_router(health.router, tags=["health"])
 app.include_router(recordings.router, prefix="/recordings", tags=["recordings"])
 
 

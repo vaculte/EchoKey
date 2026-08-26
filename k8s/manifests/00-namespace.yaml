@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: echokey-dev
+  labels:
+    app.kubernetes.io/name: echokey
+    app.kubernetes.io/instance: echokey-dev
+    app.kubernetes.io/managed-by: kubectl
+    environment: dev

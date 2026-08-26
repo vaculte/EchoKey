@@ -26,7 +26,11 @@ class RecordingResponse(BaseModel):
     updated_at: datetime
 
 
-class HealthResponse(BaseModel):
+class LivenessResponse(BaseModel):
+    status: str
+
+
+class ReadinessResponse(BaseModel):
     status: str
     database: bool
     redis: bool

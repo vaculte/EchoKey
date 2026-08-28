@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads
+  namespace: echokey-dev
+  labels:
+    app.kubernetes.io/name: echokey
+    app.kubernetes.io/instance: echokey-dev
+    app.kubernetes.io/component: uploads
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  storageClassName: ""
+  volumeName: echokey-dev-uploads
+  resources:
+    requests:
+      storage: 2Gi

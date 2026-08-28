@@ -17,3 +17,4 @@ AGENTS.md
 ROADMAP.md
 *CHECKLIST.md
 k8s/manifests/*-secret.local.yaml
+k8s/tmp/

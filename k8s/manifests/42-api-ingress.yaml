@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  namespace: echokey-dev
+  labels:
+    app.kubernetes.io/name: echokey
+    app.kubernetes.io/instance: echokey-dev
+    app.kubernetes.io/component: api
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - echokey-dev.localhost
+      secretName: api-tls
+  rules:
+    - host: echokey-dev.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8000

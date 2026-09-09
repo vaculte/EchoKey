@@ -11,7 +11,7 @@ stack is healthy and each flow below has a matching tested rule.
 ## Application request and task flow
 
 1. The native Linux client uploads a WAV file to the FastAPI API through the
-   future Ingress endpoint.
+   certificate-verified HTTPS Ingress endpoint.
 2. The API writes the WAV file to `/app/uploads`, creates its PostgreSQL row,
    and publishes a Celery task through Redis.
 3. The Celery worker consumes the task from Redis, reads the same WAV file
@@ -33,11 +33,13 @@ carries the WAV file.
 | Celery worker Pods | Redis Pods through `redis` Service | TCP/6379 | Consume Celery tasks and use the result backend. |
 | FastAPI API Pods | CoreDNS Pods | UDP/53, TCP/53 | Resolve the `postgres` and `redis` Service names. |
 | Celery worker and init-container Pods | CoreDNS Pods | UDP/53, TCP/53 | Resolve internal Services and the future Vosk model source. |
-| Vosk init container | Chosen model host | TCP/443 | Download the model only when it is absent from the model volume. |
+| Vosk init container | `alphacephei.com` | TCP/443 | Download the Russian model only when it is absent from the model volume. |
 
-The exact Vosk model host has not been selected yet. Its HTTPS rule must be
-scoped after the download source and init-container implementation are
-verified; it must not become unrestricted permanent egress by accident.
+The worker init container downloads
+`vosk-model-small-ru-0.22.zip` from `alphacephei.com` only when
+`/model/vosk/am/final.mdl` is absent. Any future egress policy should account
+for DNS and this HTTPS dependency without granting unrestricted permanent
+egress by accident.
 
 ## Host NFS storage flow
 
@@ -87,7 +89,7 @@ limited to the kind Docker subnet `172.21.0.0/16`.
 ```text
 Native EchoKey client
         |
-        | HTTP to localhost:8080
+        | HTTPS to echokey-dev.localhost:8443
         v
 kind host-port mapping
         |

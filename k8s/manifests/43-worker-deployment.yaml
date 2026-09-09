@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: echokey-dev
+  labels:
+    app.kubernetes.io/name: echokey
+    app.kubernetes.io/instance: echokey-dev
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/managed-by: kubectl
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: echokey
+      app.kubernetes.io/instance: echokey-dev
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: echokey
+        app.kubernetes.io/instance: echokey-dev
+        app.kubernetes.io/component: worker
+    spec:
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: uploads
+        - name: vosk-model
+          persistentVolumeClaim:
+            claimName: vosk-model
+      nodeSelector:
+        kubernetes.io/hostname: k8s-echokey-worker2
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: download-vosk-model
+          image: ghcr.io/vaculte/echokey:df1ff3ce2467cab6f6740b7cb704fa59de30d6fc
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -c
+          args:
+            - |
+              import pathlib
+              import shutil
+              import urllib.request
+              import zipfile
+
+              volume = pathlib.Path("/model")
+              target = volume / "vosk"
+              marker = target / "am" / "final.mdl"
+              source = volume / "vosk-model-small-ru-0.22"
+              archive = pathlib.Path("/tmp/vosk-model.zip")
+
+              if marker.is_file():
+                  print("Vosk model already exists")
+                  raise SystemExit(0)
+
+              shutil.rmtree(target, ignore_errors=True)
+              shutil.rmtree(source, ignore_errors=True)
+              archive.unlink(missing_ok=True)
+
+              print("Downloading Vosk model")
+              urllib.request.urlretrieve(
+                  "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip",
+                  archive,
+              )
+
+              with zipfile.ZipFile(archive) as model_zip:
+                  model_zip.extractall(volume)
+
+              source.rename(target)
+              archive.unlink(missing_ok=True)
+
+              if not marker.is_file():
+                  raise RuntimeError("Vosk model installation failed")
+
+              print("Vosk model is ready")
+          volumeMounts:
+            - name: vosk-model
+              mountPath: /model
+      containers:
+        - name: worker
+          image: ghcr.io/vaculte/echokey:df1ff3ce2467cab6f6740b7cb704fa59de30d6fc
+          imagePullPolicy: IfNotPresent
+          command:
+            - celery
+          args:
+            - -A
+            - app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=1
+          envFrom:
+            - configMapRef:
+                name: echokey-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: echokey-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: echokey-secrets
+                  key: REDIS_URL
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+            - name: vosk-model
+              mountPath: /app/models
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

@@ -13,6 +13,8 @@ models/*
 uploads/
 *.wav
 *.mp3
+core
+core.*
 AGENTS.md
 ROADMAP.md
 *CHECKLIST.md

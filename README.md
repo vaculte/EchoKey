@@ -21,7 +21,7 @@ speech service.
 - **Wayland and X11 support** — uses `evdev`/`wtype` on Wayland and `pynput`
   fallbacks on X11.
 - **Production-shaped backend** — FastAPI, PostgreSQL, Redis and a Celery
-  worker are provided as a Docker Compose stack.
+  worker run through Docker Compose or the verified local Kubernetes lab.
 
 ## Architecture
 
@@ -49,7 +49,7 @@ command. Uploaded audio is stored locally in the configured uploads volume.
 | Background jobs | Celery, Redis |
 | Data | PostgreSQL 15 |
 | Speech recognition | Vosk |
-| Delivery and quality | Docker Compose, GitHub Actions, Ruff, pytest, unittest |
+| Delivery and quality | Docker Compose, Kubernetes, kind, Calico, Traefik, GitHub Actions, Ruff, pytest, unittest |
 
 ## Quick start
 
@@ -97,7 +97,23 @@ HOTKEY=<ctrl>+<shift>+r
 DEBUG=false
 ```
 
+The tracked client example targets the verified Kubernetes HTTPS endpoint. If
+you use Docker Compose instead, set `ECHOKEY_API_URL=http://localhost:8000` in
+the ignored `client/.env` as shown above.
+
 `cmd`, `super` and `win` are equivalent modifier aliases.
+
+## Local Kubernetes deployment
+
+The v0.1 Kubernetes lab is verified end to end: the native Wayland client
+uploads through a locally trusted HTTPS Traefik Ingress, the API stores the
+WAV on a shared NFS-backed PVC, Celery consumes the Redis task on another
+worker node, Vosk transcribes it, and the client pastes the stored result.
+
+The deployment uses a three-node kind cluster with Calico, PostgreSQL and
+Redis persistence, a recoverable Vosk model PVC, and an immutable GHCR image.
+See [`k8s/README.md`](k8s/README.md) for the topology, prerequisites,
+installation order, TLS setup, verification commands, and recovery limits.
 
 ## Linux desktop requirements
 
@@ -122,7 +138,8 @@ EchoKey falls back to `pynput`, which is most reliable in XWayland windows.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Reports PostgreSQL and Redis health |
+| `GET /health` | Dependency-independent process liveness |
+| `GET /ready` | Reports PostgreSQL and Redis readiness |
 | `GET /metrics` | Exposes Prometheus metrics |
 | `POST /recordings` | Uploads a WAV recording and queues transcription |
 | `GET /recordings/{id}` | Retrieves transcription status and result |
@@ -157,6 +174,7 @@ backend/    FastAPI API, Celery worker, database migrations and pytest suite
 client/     Linux desktop client and unit tests
 models/     local Vosk model mount point (not committed)
 .github/    pull-request quality checks
+k8s/        verified manual local Kubernetes deployment
 ```
 
 ## Roadmap
@@ -164,8 +182,11 @@ models/     local Vosk model mount point (not committed)
 - [x] Dockerized local stack
 - [x] Pull-request lint and test checks for backend and client
 - [x] Publish container images after merge to `main`
-- [ ] Kubernetes deployment manifests
+- [x] Verified local Kubernetes deployment and HTTPS client flow
 - [ ] Prometheus and Grafana dashboard
+
+The next Kubernetes stages are Helm packaging, multi-environment installation,
+NetworkPolicies, recovery checks, and automation.
 
 ---
 

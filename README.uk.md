@@ -22,7 +22,7 @@ EchoKey перетворює диктування за утримання hotkey
 - **Підтримка Wayland і X11** — використовуються `evdev`/`wtype` у Wayland та
   fallback-механізми `pynput` у X11.
 - **Backend, готовий до розгортання** — FastAPI, PostgreSQL, Redis і Celery
-  worker доступні у Docker Compose stack.
+  worker працюють через Docker Compose або перевірений локальний Kubernetes lab.
 
 ## Архітектура
 
@@ -50,7 +50,7 @@ API і worker використовують один backend image та відр�
 | Фонові задачі | Celery, Redis |
 | Дані | PostgreSQL 15 |
 | Розпізнавання мовлення | Vosk |
-| Delivery і quality | Docker Compose, GitHub Actions, Ruff, pytest, unittest |
+| Delivery і quality | Docker Compose, Kubernetes, kind, Calico, Traefik, GitHub Actions, Ruff, pytest, unittest |
 
 ## Швидкий старт
 
@@ -99,7 +99,25 @@ HOTKEY=<ctrl>+<shift>+r
 DEBUG=false
 ```
 
+Відстежуваний client example налаштований на перевірений Kubernetes HTTPS
+endpoint. Для Docker Compose задайте
+`ECHOKEY_API_URL=http://localhost:8000` в ігнорованому `client/.env`, як
+показано вище.
+
 `cmd`, `super` і `win` — еквівалентні aliases одного modifier.
+
+## Локальне Kubernetes-розгортання
+
+Kubernetes lab версії v0.1 перевірено end to end: нативний Wayland client
+завантажує запис через Traefik Ingress із довіреним локальним HTTPS, API
+зберігає WAV у спільному NFS-backed PVC, Celery отримує Redis-задачу на іншій
+worker node, Vosk розпізнає мовлення, а клієнт вставляє збережений результат.
+
+Розгортання використовує тривузловий kind cluster із Calico, постійними
+томами PostgreSQL і Redis, відновлюваним PVC моделі Vosk та незмінним GHCR
+image. Топологію, prerequisites, порядок встановлення, налаштування TLS,
+перевірки та межі відновлення описано в
+[`k8s/README.md`](k8s/README.md).
 
 ## Вимоги Linux desktop
 
@@ -124,7 +142,8 @@ sudo usermod -aG input "$USER"
 
 | Endpoint | Призначення |
 | --- | --- |
-| `GET /health` | Стан PostgreSQL і Redis |
+| `GET /health` | Незалежна від залежностей перевірка процесу |
+| `GET /ready` | Готовність PostgreSQL і Redis |
 | `GET /metrics` | Prometheus metrics |
 | `POST /recordings` | Завантажує WAV recording і ставить транскрибування в чергу |
 | `GET /recordings/{id}` | Повертає status і результат транскрибування |
@@ -158,6 +177,7 @@ backend/    FastAPI API, Celery worker, database migrations і pytest suite
 client/     Linux desktop client і unit tests
 models/     mount point для локальної Vosk model (не комітиться)
 .github/    pull-request quality checks
+k8s/        перевірене ручне локальне Kubernetes-розгортання
 ```
 
 ## Roadmap
@@ -165,8 +185,11 @@ models/     mount point для локальної Vosk model (не коміти�
 - [x] Dockerized local stack
 - [x] Pull-request lint і test checks для backend і client
 - [x] Публікація container images після merge у `main`
-- [ ] Kubernetes deployment manifests
+- [x] Перевірене локальне Kubernetes-розгортання та HTTPS client flow
 - [ ] Prometheus і Grafana dashboard
+
+Наступні Kubernetes-етапи: Helm packaging, встановлення кількох environments,
+NetworkPolicies, recovery checks і automation.
 
 ---
 

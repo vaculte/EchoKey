@@ -30,7 +30,7 @@ spec:
         kubernetes.io/hostname: k8s-echokey-worker
       containers:
         - name: api
-          image: ghcr.io/vaculte/echokey:df1ff3ce2467cab6f6740b7cb704fa59de30d6fc
+          image: ghcr.io/vaculte/echokey:5739ae9e99c71074499de3322359b5de1db7d4d8
           imagePullPolicy: IfNotPresent
           command:
             - uvicorn

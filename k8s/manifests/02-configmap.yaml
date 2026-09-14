@@ -9,11 +9,6 @@ metadata:
     app.kubernetes.io/component: configuration
     app.kubernetes.io/managed-by: kubectl
 data:
-  POSTGRES_HOST: postgres
-  POSTGRES_PORT: "5432"
-  REDIS_HOST: redis
-  REDIS_PORT: "6379"
-  REDIS_DB: "0"
   AUDIO_UPLOAD_DIR: /app/uploads
   VOSK_MODEL_PATH: /app/models/vosk
   LOG_LEVEL: INFO

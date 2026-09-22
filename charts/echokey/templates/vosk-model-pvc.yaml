@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vosk-model
+  labels:
+    {{- include "echokey.labels" . | nindent 4 }}
+    app.kubernetes.io/component: model
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  storageClassName: {{ .Values.voskModel.persistence.storageClass | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.voskModel.persistence.size | quote }}

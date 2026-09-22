@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: echokey-config
+  labels:
+    {{- include "echokey.labels" . | nindent 4 }}
+    app.kubernetes.io/component: configuration
+data:
+  AUDIO_UPLOAD_DIR: "/app/uploads"
+  VOSK_MODEL_PATH: "/app/models/vosk"
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}

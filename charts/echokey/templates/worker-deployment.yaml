@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    {{- include "echokey.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "echokey.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "echokey.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: {{ .Values.uploads.existingClaim }}
+        - name: vosk-model
+          persistentVolumeClaim:
+            claimName: vosk-model
+      nodeSelector:
+        {{- toYaml .Values.worker.nodeSelector | nindent 8 }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: download-vosk-model
+          image: {{ include "echokey.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - -m
+            - app.scripts.install_vosk_model
+          args:
+            - --volume
+            - /model
+            - --download-url
+            - "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"
+            - --extracted-directory
+            - "vosk-model-small-ru-0.22"
+          volumeMounts:
+            - name: vosk-model
+              mountPath: /model
+      containers:
+        - name: worker
+          image: {{ include "echokey.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - celery
+          args:
+            - -A
+            - app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=1
+          envFrom:
+            - configMapRef:
+                name: echokey-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: REDIS_URL
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+            - name: vosk-model
+              mountPath: /app/models
+              readOnly: true
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}

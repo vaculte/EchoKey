@@ -1,22 +1,22 @@
 # EchoKey on local Kubernetes
 
-This directory contains the manually verified Kubernetes deployment used for
-the EchoKey v0.1 local lab. It runs the backend inside a three-node kind
-cluster while the microphone, global hotkey, and text-insertion client remain
-native on the Linux host.
+EchoKey is deployed in this local v0.1 lab as two isolated Helm releases:
+`echokey-dev` in `echokey-dev` and `echokey-prod` in `echokey-prod`. The
+microphone, global hotkey, and text-insertion client remain native on the
+Linux host.
 
 ```text
 native client -> HTTPS/Traefik -> API -> PostgreSQL
                                   |
                                   +-> Redis -> Celery worker -> Vosk
                                   |
-                                  +-> shared uploads PVC <- worker
+                                  +-> environment-specific NFS uploads PVC
 ```
 
 This is a single-host development environment, not a highly available
 production deployment. The kind nodes are Docker containers, local-path
-volumes belong to individual kind nodes, and the shared uploads volume depends
-on an NFS service on the physical host.
+volumes belong to individual kind nodes, and shared uploads depend on NFS on
+the physical host.
 
 ## Verified versions
 
@@ -26,28 +26,30 @@ on an NFS service on the physical host.
 | Calico | `v3.32.1` |
 | Traefik chart | `41.4.0` |
 | Traefik application | `v3.7.12` |
-| EchoKey image | `ghcr.io/vaculte/echokey:df1ff3ce2467cab6f6740b7cb704fa59de30d6fc` |
+| EchoKey image | `ghcr.io/vaculte/echokey:5739ae9e99c71074499de3322359b5de1db7d4d8` |
 
-## Host prerequisites
+## Host and cluster prerequisites
 
 Install Docker, kind, kubectl, Helm, mkcert, and the NFS client/server tools
-required by the host OS. Configure the host-backed shared uploads directory
-before applying its PV and PVC. The complete NFS configuration, verification,
-recovery limits, and rollback procedure are documented in
-[`platform/host-nfs/README.md`](platform/host-nfs/README.md).
+required by the host OS. Configure host-backed uploads before applying their
+static PVs and PVCs. The complete NFS layout, export, verification, and
+limitations are in [`platform/host-nfs/README.md`](platform/host-nfs/README.md).
 
-The TLS certificate and Kubernetes Secrets are local state and are never
-committed. The ignored file `manifests/01-secret.local.yaml` must provide the
-following keys in Secret `echokey-dev/echokey-secrets`:
+The chart intentionally does not create any of the following environment
+prerequisites:
 
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `REDIS_PASSWORD`
-- `DATABASE_URL`
-- `REDIS_URL`
+- the namespace;
+- `echokey-secrets` with database and Redis credentials;
+- the `api-tls` TLS Secret; or
+- the static NFS PV and its namespaced `uploads` PVC.
 
-## Cluster and platform components
+They contain host-specific or secret state and must exist before Helm is run.
+The tracked manifests create the two namespaces and static uploads storage;
+credentials and TLS material stay local and out of Git. Each
+`echokey-secrets` Secret must provide `POSTGRES_DB`, `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `DATABASE_URL`, and `REDIS_URL`.
+
+## Cluster platform
 
 Create the cluster:
 
@@ -57,7 +59,7 @@ kind create cluster \
   --config k8s/kind/create-cluster.yaml
 ```
 
-Install Calico with the Pod CIDR and VXLAN settings tracked in this repository:
+Install Calico:
 
 ```bash
 helm repo add projectcalico https://docs.tigera.io/calico/charts
@@ -70,9 +72,9 @@ helm upgrade --install calico projectcalico/tigera-operator \
   --timeout 5m
 ```
 
-Install Traefik on the control-plane node. The values use `hostPort` rather
-than a Traefik Service and redirect host port `8080` to trusted HTTPS on
-`8443` through the mappings in the kind configuration.
+Install Traefik on the control-plane node. The tracked values use `hostPort`
+instead of a Traefik Service and redirect host port `8080` to HTTPS on `8443`
+through the kind port mappings.
 
 ```bash
 helm repo add traefik https://traefik.github.io/charts
@@ -86,38 +88,24 @@ helm upgrade --install traefik traefik/traefik \
   --timeout 5m
 ```
 
-## Application resources
+## Create external environment resources
 
-Apply the namespace, local Secret, ConfigMap, data services, and storage in
-order:
+Apply each namespace and its dedicated uploads PV/PVC pair. The two PVs mount
+different NFSv4 paths, so development and production recordings cannot mix.
 
 ```bash
-kubectl apply -f k8s/manifests/00-namespace.yaml
-kubectl apply -f k8s/manifests/01-secret.local.yaml
-kubectl apply -f k8s/manifests/02-configmap.yaml
-kubectl apply -f k8s/manifests/10-postgres-pvc.yaml
-kubectl apply -f k8s/manifests/11-postgres-services.yaml
-kubectl apply -f k8s/manifests/12-postgres-statefulset.yaml
-kubectl apply -f k8s/manifests/20-redis-pvc.yaml
-kubectl apply -f k8s/manifests/21-redis-services.yaml
-kubectl apply -f k8s/manifests/22-redis-deployment.yaml
-kubectl apply -f k8s/manifests/30-uploads-pv.yaml
-kubectl apply -f k8s/manifests/31-uploads-pvc.yaml
-kubectl apply -f k8s/manifests/32-vosk-model-pvc.yaml
-kubectl apply -f k8s/manifests/40-api-deployment.yaml
-kubectl apply -f k8s/manifests/41-api-service.yaml
-kubectl apply -f k8s/manifests/43-worker-deployment.yaml
+kubectl apply -f k8s/manifests/00-namespace-dev.yaml
+kubectl apply -f k8s/manifests/30-uploads-dev-pv.yaml
+kubectl apply -f k8s/manifests/31-uploads-dev-pvc.yaml
+
+kubectl apply -f k8s/manifests/00-namespace-prod.yaml
+kubectl apply -f k8s/manifests/33-uploads-prod-pv.yaml
+kubectl apply -f k8s/manifests/34-uploads-prod-pvc.yaml
 ```
 
-The model PVC uses the local `standard` StorageClass with
-`WaitForFirstConsumer`. It can remain Pending until the worker Pod is
-scheduled on `k8s-echokey-worker2`. The worker init container then downloads
-the Russian Vosk model only when it is absent from the PVC.
-
-## Local TLS and Ingress
-
-Create and trust a local CA once, then issue a certificate for the development
-hostname:
+Create `echokey-secrets` in both namespaces from local, untracked credential
+files. Create and trust a local CA once, then create a TLS Secret in each
+namespace. This single certificate covers both local environment hostnames:
 
 ```bash
 mkcert -install
@@ -125,76 +113,80 @@ ECHOKEY_TLS_DIR=$(mktemp -d /tmp/echokey-tls.XXXXXX)
 mkcert \
   -cert-file "$ECHOKEY_TLS_DIR/tls.crt" \
   -key-file "$ECHOKEY_TLS_DIR/tls.key" \
-  echokey-dev.localhost
-kubectl create secret tls api-tls \
-  --namespace echokey-dev \
-  --cert="$ECHOKEY_TLS_DIR/tls.crt" \
-  --key="$ECHOKEY_TLS_DIR/tls.key"
-kubectl apply -f k8s/manifests/42-api-ingress.yaml
+  echokey-dev.localhost echokey-prod.localhost
+
+for namespace in echokey-dev echokey-prod; do
+  kubectl -n "$namespace" create secret tls api-tls \
+    --cert="$ECHOKEY_TLS_DIR/tls.crt" \
+    --key="$ECHOKEY_TLS_DIR/tls.key" \
+    --dry-run=client -o yaml | kubectl apply -f -
+done
 ```
 
-Do not place the leaf private key or the mkcert root CA private key in Git.
-Configure the ignored `client/.env` with the API URL and the public root CA
-certificate used by Python/httpx:
+The native client must trust the mkcert root CA and use the matching HTTPS URL.
 
 ```env
 ECHOKEY_API_URL=https://echokey-dev.localhost:8443
 ECHOKEY_CA_CERT=/absolute/path/from/mkcert-CAROOT/rootCA.pem
 ```
 
-`mkcert -CAROOT` prints the directory containing `rootCA.pem`.
+`mkcert -CAROOT` prints the directory containing `rootCA.pem`. Set
+`ECHOKEY_API_URL=https://echokey-prod.localhost:8443` to use production.
+
+## Install or update EchoKey
+
+The chart owns the application workloads, ConfigMap, Ingress, and local
+PostgreSQL, Redis, and Vosk PVCs. `values.yaml` is the shared local baseline;
+the environment overlays currently differ only in Ingress hostname.
+
+```bash
+helm upgrade --install echokey-dev charts/echokey \
+  --namespace echokey-dev \
+  --values charts/echokey/values-dev.yaml \
+  --wait \
+  --timeout 10m
+
+helm upgrade --install echokey-prod charts/echokey \
+  --namespace echokey-prod \
+  --values charts/echokey/values-prod.yaml \
+  --wait \
+  --timeout 10m
+```
+
+Do not use `--take-ownership` to convert manually created application
+resources. The verified dev migration deliberately rebuilt chart-owned
+resources while retaining the external namespace, NFS uploads PVC/PV,
+credentials Secret, and TLS Secret.
 
 ## Verification
 
-Check the workloads and storage:
-
 ```bash
-kubectl get pods,pvc -n echokey-dev -o wide
-kubectl get pods -n traefik -o wide
+helm list --all-namespaces
+kubectl get pods,pvc -n echokey-dev
+kubectl get pods,pvc -n echokey-prod
+
+curl -fsS https://echokey-dev.localhost:8443/ready
+curl -fsS https://echokey-prod.localhost:8443/ready
 ```
 
-Verify the HTTPS route and dependency readiness:
+Both readiness responses should be:
 
-```bash
-curl -i https://echokey-dev.localhost:8443/health
-curl -i https://echokey-dev.localhost:8443/ready
-curl -iL http://echokey-dev.localhost:8080/health
+```json
+{"status":"ok","database":true,"redis":true}
 ```
 
-Inspect model initialization and follow Celery tasks:
+Then run the native client with the matching `ECHOKEY_API_URL`. A successful
+recording returns HTTP 201, is polled from `pending` to `completed`, and pastes
+the non-empty transcript into the focused field.
 
-```bash
-kubectl logs -n echokey-dev deployment/worker -c download-vosk-model
-kubectl logs -n echokey-dev deployment/worker -c worker --follow
-```
+Fresh installations can restart the API while PostgreSQL first opens port
+`5432`; Kubernetes then restarts it and the release becomes healthy. This is
+an observed cold-start limitation of the current lab, not an alternate
+deployment path.
 
-The final v0.1 verification is a real recording from the native client. A
-successful run creates the recording with HTTP 201, moves its state from
-`pending` to `completed`, logs a successful Celery task, and pastes the
-non-empty transcript into the focused field.
+## Uninstall boundary
 
-## Recovery boundary
-
-If the kind Docker containers are stopped but still exist, start the three
-known nodes and wait for Kubernetes to recover:
-
-```bash
-docker start \
-  k8s-echokey-control-plane \
-  k8s-echokey-worker \
-  k8s-echokey-worker2
-kubectl wait --for=condition=Ready nodes --all --timeout=180s
-kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=240s
-```
-
-The Vosk model and local database volumes survived this node-container
-stop/start in the verified environment. Recreating the kind cluster is a
-different operation and can destroy local-path data. The host NFS upload data
-has its own recovery rules documented in the host-NFS guide.
-
-## Next checkpoints
-
-The manual application deployment is verified end to end. The remaining
-learning path continues with API probes, an EchoKey Helm chart, two-release
-dev/prod isolation, NetworkPolicies, and recovery automation. The detailed
-order and completion criteria live in the local `K8S_CHECKLIST.md`.
+`helm uninstall` removes chart-owned application resources, including the
+local PostgreSQL, Redis, and Vosk PVC objects. It does not remove the external
+NFS uploads PV/PVC, the host files, credentials, or TLS Secrets. Preserve or
+remove those external resources separately and deliberately.

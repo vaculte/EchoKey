@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: echokey-dev-uploads
+  name: echokey-prod-uploads
   labels:
     app.kubernetes.io/name: echokey
-    app.kubernetes.io/instance: echokey-dev
+    app.kubernetes.io/instance: echokey-prod
     app.kubernetes.io/component: uploads
     app.kubernetes.io/managed-by: kubectl
 spec:
@@ -19,4 +19,4 @@ spec:
     - nfsvers=4.1
   nfs:
     server: 172.21.0.1
-    path: /
+    path: /echokey-prod

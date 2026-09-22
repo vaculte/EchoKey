@@ -1,0 +1,6 @@
+apiVersion: v2
+name: echokey
+version: 0.1.0
+description: Helm chart for the EchoKey backend stack
+type: application
+appVersion: "5739ae9e99c71074499de3322359b5de1db7d4d8"

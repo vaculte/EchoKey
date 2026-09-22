@@ -106,16 +106,16 @@ endpoint. Для Docker Compose задайте
 
 ## Локальное Kubernetes-развёртывание
 
-Kubernetes lab версии v0.1 проверен end to end: нативный Wayland client
-загружает запись через Traefik Ingress с доверенным локальным HTTPS, API
-сохраняет WAV в общем NFS-backed PVC, Celery получает Redis-задачу на другой
-worker node, Vosk распознаёт речь, а клиент вставляет сохранённый результат.
+Kubernetes lab версии v0.1 проверен end to end в двух изолированных Helm
+releases: `echokey-dev` и `echokey-prod`. В обоих окружениях нативный Wayland
+client загружает запись через Traefik Ingress с доверенным локальным HTTPS,
+API сохраняет WAV в NFS-backed PVC своего окружения, Celery распознаёт речь
+через Vosk, а клиент вставляет готовый результат.
 
 Развёртывание использует трёхузловой kind cluster с Calico, постоянными
 томами PostgreSQL и Redis, восстанавливаемым PVC модели Vosk и неизменяемым
-GHCR image. Топология, prerequisites, порядок установки, настройка TLS,
-проверки и ограничения восстановления описаны в
-[`k8s/README.md`](k8s/README.md).
+GHCR image. Helm contract, prerequisites окружений, TLS, проверки и
+ограничения хранилища описаны в [`k8s/README.md`](k8s/README.md).
 
 ## Требования Linux desktop
 
@@ -175,7 +175,7 @@ backend/    FastAPI API, Celery worker, database migrations и pytest suite
 client/     Linux desktop client и unit tests
 models/     mount point для локальной Vosk model (не коммитится)
 .github/    pull-request quality checks
-k8s/        проверенное ручное локальное Kubernetes-развёртывание
+k8s/        Helm chart, манифесты внешнего storage и Kubernetes-документация
 ```
 
 ## Roadmap
@@ -184,10 +184,11 @@ k8s/        проверенное ручное локальное Kubernetes-р
 - [x] Pull-request lint и test checks для backend и client
 - [x] Публикация container images после merge в `main`
 - [x] Проверенное локальное Kubernetes-развёртывание и HTTPS client flow
-- [ ] Prometheus и Grafana dashboard
+- [x] Изолированные dev и prod Helm releases
+- [x] Prometheus metrics endpoint
 
-Следующие Kubernetes-этапы: Helm packaging, установка нескольких environments,
-NetworkPolicies, recovery checks и automation.
+NetworkPolicies, расширенные recovery checks, automation и Grafana намеренно
+остались вне завершённого Helm scope этого проекта.
 
 ---
 

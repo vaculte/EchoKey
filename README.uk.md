@@ -108,16 +108,16 @@ endpoint. Для Docker Compose задайте
 
 ## Локальне Kubernetes-розгортання
 
-Kubernetes lab версії v0.1 перевірено end to end: нативний Wayland client
-завантажує запис через Traefik Ingress із довіреним локальним HTTPS, API
-зберігає WAV у спільному NFS-backed PVC, Celery отримує Redis-задачу на іншій
-worker node, Vosk розпізнає мовлення, а клієнт вставляє збережений результат.
+Kubernetes lab версії v0.1 перевірено end to end у двох ізольованих Helm
+releases: `echokey-dev` і `echokey-prod`. В обох середовищах нативний Wayland
+client завантажує запис через Traefik Ingress із довіреним локальним HTTPS,
+API зберігає WAV у NFS-backed PVC свого середовища, Celery розпізнає мовлення
+через Vosk, а клієнт вставляє готовий результат.
 
 Розгортання використовує тривузловий kind cluster із Calico, постійними
 томами PostgreSQL і Redis, відновлюваним PVC моделі Vosk та незмінним GHCR
-image. Топологію, prerequisites, порядок встановлення, налаштування TLS,
-перевірки та межі відновлення описано в
-[`k8s/README.md`](k8s/README.md).
+image. Helm contract, prerequisites середовищ, TLS, перевірки та обмеження
+сховища описано в [`k8s/README.md`](k8s/README.md).
 
 ## Вимоги Linux desktop
 
@@ -177,7 +177,7 @@ backend/    FastAPI API, Celery worker, database migrations і pytest suite
 client/     Linux desktop client і unit tests
 models/     mount point для локальної Vosk model (не комітиться)
 .github/    pull-request quality checks
-k8s/        перевірене ручне локальне Kubernetes-розгортання
+k8s/        Helm chart, маніфести зовнішнього storage та Kubernetes-документація
 ```
 
 ## Roadmap
@@ -186,10 +186,11 @@ k8s/        перевірене ручне локальне Kubernetes-розг
 - [x] Pull-request lint і test checks для backend і client
 - [x] Публікація container images після merge у `main`
 - [x] Перевірене локальне Kubernetes-розгортання та HTTPS client flow
-- [ ] Prometheus і Grafana dashboard
+- [x] Ізольовані dev і prod Helm releases
+- [x] Prometheus metrics endpoint
 
-Наступні Kubernetes-етапи: Helm packaging, встановлення кількох environments,
-NetworkPolicies, recovery checks і automation.
+NetworkPolicies, розширені recovery checks, automation і Grafana навмисно
+залишені поза завершеним Helm scope цього проєкту.
 
 ---
 

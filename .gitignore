@@ -18,5 +18,7 @@ core.*
 AGENTS.md
 ROADMAP.md
 *CHECKLIST.md
+HELM_CONTRACT.md
 k8s/manifests/*-secret.local.yaml
 k8s/tmp/
+graphify-out/

@@ -105,15 +105,17 @@ the ignored `client/.env` as shown above.
 
 ## Local Kubernetes deployment
 
-The v0.1 Kubernetes lab is verified end to end: the native Wayland client
-uploads through a locally trusted HTTPS Traefik Ingress, the API stores the
-WAV on a shared NFS-backed PVC, Celery consumes the Redis task on another
-worker node, Vosk transcribes it, and the client pastes the stored result.
+The v0.1 Kubernetes lab is verified end to end in two isolated Helm releases:
+`echokey-dev` and `echokey-prod`. In both environments the native Wayland
+client uploads through locally trusted HTTPS Traefik Ingress, the API stores
+the WAV on an environment-specific NFS-backed PVC, Celery transcribes it with
+Vosk, and the client pastes the completed result.
 
 The deployment uses a three-node kind cluster with Calico, PostgreSQL and
 Redis persistence, a recoverable Vosk model PVC, and an immutable GHCR image.
-See [`k8s/README.md`](k8s/README.md) for the topology, prerequisites,
-installation order, TLS setup, verification commands, and recovery limits.
+See [`k8s/README.md`](k8s/README.md) for the Helm installation contract,
+environment prerequisites, TLS setup, verification commands, and storage
+limits.
 
 ## Linux desktop requirements
 
@@ -174,7 +176,7 @@ backend/    FastAPI API, Celery worker, database migrations and pytest suite
 client/     Linux desktop client and unit tests
 models/     local Vosk model mount point (not committed)
 .github/    pull-request quality checks
-k8s/        verified manual local Kubernetes deployment
+k8s/        Helm chart, external storage manifests, and local Kubernetes docs
 ```
 
 ## Roadmap
@@ -183,10 +185,11 @@ k8s/        verified manual local Kubernetes deployment
 - [x] Pull-request lint and test checks for backend and client
 - [x] Publish container images after merge to `main`
 - [x] Verified local Kubernetes deployment and HTTPS client flow
-- [ ] Prometheus and Grafana dashboard
+- [x] Package the deployment as isolated dev and prod Helm releases
+- [x] Expose Prometheus metrics
 
-The next Kubernetes stages are Helm packaging, multi-environment installation,
-NetworkPolicies, recovery checks, and automation.
+NetworkPolicies, extended recovery drills, automation, and Grafana are
+deliberately outside this project's completed Helm scope.
 
 ---
 

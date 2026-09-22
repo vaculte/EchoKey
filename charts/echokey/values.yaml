@@ -1,0 +1,71 @@
+image:
+  repository: ghcr.io/vaculte/echokey
+  tag: ""
+  pullPolicy: IfNotPresent
+
+credentials:
+  existingSecret: echokey-secrets
+
+uploads:
+  existingClaim: uploads
+
+config:
+  logLevel: INFO
+
+ingress:
+  className: traefik
+  host: echokey-dev.localhost
+  tls:
+    secretName: api-tls
+
+postgresql:
+  image:
+    repository: postgres
+    tag: 15-alpine
+    pullPolicy: IfNotPresent
+  persistence:
+    storageClass: standard
+    size: 2Gi
+  nodeSelector:
+    kubernetes.io/hostname: k8s-echokey-worker
+  resources: {}
+
+redis:
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  persistence:
+    storageClass: standard
+    size: 1Gi
+  nodeSelector:
+    kubernetes.io/hostname: k8s-echokey-worker2
+  resources: {}
+
+api:
+  replicaCount: 1
+  nodeSelector:
+    kubernetes.io/hostname: k8s-echokey-worker
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+voskModel:
+  persistence:
+    storageClass: standard
+    size: 1Gi
+
+worker:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-echokey-worker2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi

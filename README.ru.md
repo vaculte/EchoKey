@@ -185,9 +185,8 @@ k8s/        Helm chart, манифесты внешнего storage и Kubernete
 - [x] Публикация container images после merge в `main`
 - [x] Проверенное локальное Kubernetes-развёртывание и HTTPS client flow
 - [x] Изолированные dev и prod Helm releases
-- [x] Prometheus metrics endpoint
 
-NetworkPolicies, расширенные recovery checks, automation и Grafana намеренно
+Monitoring, NetworkPolicies, расширенные recovery checks и automation намеренно
 остались вне завершённого Helm scope этого проекта.
 
 ---

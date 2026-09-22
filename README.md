@@ -186,9 +186,8 @@ k8s/        Helm chart, external storage manifests, and local Kubernetes docs
 - [x] Publish container images after merge to `main`
 - [x] Verified local Kubernetes deployment and HTTPS client flow
 - [x] Package the deployment as isolated dev and prod Helm releases
-- [x] Expose Prometheus metrics
 
-NetworkPolicies, extended recovery drills, automation, and Grafana are
+Monitoring, NetworkPolicies, extended recovery drills, and automation are
 deliberately outside this project's completed Helm scope.
 
 ---

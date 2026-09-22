@@ -180,17 +180,6 @@ models/     mount point для локальної Vosk model (не коміти�
 k8s/        Helm chart, маніфести зовнішнього storage та Kubernetes-документація
 ```
 
-## Roadmap
-
-- [x] Dockerized local stack
-- [x] Pull-request lint і test checks для backend і client
-- [x] Публікація container images після merge у `main`
-- [x] Перевірене локальне Kubernetes-розгортання та HTTPS client flow
-- [x] Ізольовані dev і prod Helm releases
-
-Monitoring, NetworkPolicies, розширені recovery checks і automation навмисно
-залишені поза завершеним Helm scope цього проєкту.
-
 ---
 
 EchoKey створено як local-first проєкт: аудіо залишається на машині, де ви його
